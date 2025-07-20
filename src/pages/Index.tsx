@@ -1,12 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React from 'react';
+import HeroSection from '@/components/home/HeroSection';
+import TimelineSection from '@/components/timeline/TimelineSection';
+import CategoryGrid from '@/components/categories/CategoryGrid';
+import SearchSection from '@/components/search/SearchSection';
 
 const Index = () => {
+  // CTA link - set to null to hide the button, or provide a URL
+  const ctaLink = "https://example.com/mulai-belajar"; // Set to null to hide
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen">
+      {/* Hero Section with conditional CTA */}
+      <HeroSection ctaLink={ctaLink} />
+      
+      {/* Timeline Section */}
+      <TimelineSection />
+      
+      {/* Category Grid */}
+      <CategoryGrid />
+      
+      {/* Search Section */}
+      <SearchSection />
     </div>
   );
 };

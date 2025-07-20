@@ -110,7 +110,7 @@ const Timeline = () => {
   };
 
   const handleCardClick = (event: any) => {
-    console.log('Navigate to event detail:', event);
+    window.location.href = `/event/${event.id}`;
   };
 
   return (

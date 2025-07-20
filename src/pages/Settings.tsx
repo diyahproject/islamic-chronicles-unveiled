@@ -167,7 +167,7 @@ const Settings = () => {
                 variant="outline"
                 className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 onClick={() => {
-                  alert('Fitur admin login akan segera tersedia!');
+                  window.location.href = '/admin';
                 }}
               >
                 Login Anggota

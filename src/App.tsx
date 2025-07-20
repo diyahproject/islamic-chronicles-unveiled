@@ -10,6 +10,7 @@ import Timeline from "./pages/Timeline";
 import EventDetail from "./pages/EventDetail";
 import Download from "./pages/Download";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/event/:id" element={<EventDetail />} />
               <Route path="/download" element={<Download />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

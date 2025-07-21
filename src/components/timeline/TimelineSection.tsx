@@ -1,154 +1,337 @@
-import React, { useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import TimelineCard from './TimelineCard';
+import React, { useEffect, useRef, ReactNode, useState, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Moon, Star, Sun, Cloud, Zap, Heart, Shield, Crown, Sparkles, Calendar } from 'lucide-react';
 
-// Mock data - in real app this would come from API/database
-const mockTimelineEvents = [
-  {
-    id: '1',
-    year: '610',
-    hijriYear: '1',
-    title: 'Wahyu Pertama',
-    subtitle: 'Turunnya wahyu pertama di Gua Hira',
-    category: 'Wahyu',
-    location: 'Makkah',
-    backgroundImage: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400',
-    description: 'Peristiwa turunnya wahyu pertama kepada Nabi Muhammad SAW di Gua Hira...'
-  },
-  {
-    id: '2',
-    year: '622',
-    hijriYear: '1',
-    title: 'Hijrah ke Madinah',
-    subtitle: 'Perpindahan kaum Muslim dari Makkah ke Madinah',
-    category: 'Hijrah',
-    location: 'Madinah',
-    backgroundImage: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400',
-    description: 'Peristiwa hijrah yang menandai dimulainya tahun Hijriyah...'
-  },
-  {
-    id: '3',
-    year: '629',
-    hijriYear: '8',
-    title: 'Fathu Makkah',
-    subtitle: 'Pembebasan kota Makkah',
-    category: 'Penaklukan',
-    location: 'Makkah',
-    backgroundImage: 'https://images.unsplash.com/photo-1469041797191-50ace28483c3?w=400',
-    description: 'Pembebasan kota Makkah oleh kaum Muslim...'
-  },
-  {
-    id: '4',
-    year: '661',
-    hijriYear: '41',
-    title: 'Dinasti Umayyah',
-    subtitle: 'Berdirinya Dinasti Umayyah di Damaskus',
-    category: 'Pemerintahan',
-    location: 'Damaskus',
-    backgroundImage: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400',
-    description: 'Dinasti Umayyah menjadi kekhalifahan pertama...'
-  },
-  {
-    id: '5',
-    year: '750',
-    hijriYear: '132',
-    title: 'Dinasti Abbasiyah',
-    subtitle: 'Dimulainya era keemasan Islam',
-    category: 'Pemerintahan',
-    location: 'Baghdad',
-    backgroundImage: 'https://images.unsplash.com/photo-1492321936769-b49830bc1d1e?w=400',
-    description: 'Era keemasan peradaban Islam dimulai...'
-  }
+interface GlowCardProps {
+  children?: ReactNode;
+  className?: string;
+  glowColor?: 'blue' | 'purple' | 'green' | 'red' | 'orange';
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const glowColorMap = {
+  blue: { base: 220, spread: 200 },
+  purple: { base: 280, spread: 300 },
+  green: { base: 120, spread: 200 },
+  red: { base: 0, spread: 200 },
+  orange: { base: 30, spread: 200 }
+};
+
+const sizeMap = {
+  sm: 'w-48 h-64',
+  md: 'w-64 h-80',
+  lg: 'w-80 h-96'
+};
+
+const GlowCard: React.FC<GlowCardProps> = ({ 
+  children, 
+  className = '', 
+  glowColor = 'blue',
+  size = 'md'
+}) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncPointer = (e: PointerEvent) => {
+      const { clientX: x, clientY: y } = e;
+      
+      if (cardRef.current) {
+        cardRef.current.style.setProperty('--x', x.toFixed(2));
+        cardRef.current.style.setProperty('--xp', (x / window.innerWidth).toFixed(2));
+        cardRef.current.style.setProperty('--y', y.toFixed(2));
+        cardRef.current.style.setProperty('--yp', (y / window.innerHeight).toFixed(2));
+      }
+    };
+
+    document.addEventListener('pointermove', syncPointer);
+    return () => document.removeEventListener('pointermove', syncPointer);
+  }, []);
+
+  const { base, spread } = glowColorMap[glowColor];
+
+  const getInlineStyles = () => ({
+    '--base': base,
+    '--spread': spread,
+    '--radius': '14',
+    '--border': '3',
+    '--backdrop': 'hsl(0 0% 60% / 0.12)',
+    '--backup-border': 'var(--backdrop)',
+    '--size': '200',
+    '--outer': '1',
+    '--border-size': 'calc(var(--border, 2) * 1px)',
+    '--spotlight-size': 'calc(var(--size, 150) * 1px)',
+    '--hue': 'calc(var(--base) + (var(--xp, 0) * var(--spread, 0)))',
+    backgroundImage: `radial-gradient(
+      var(--spotlight-size) var(--spotlight-size) at
+      calc(var(--x, 0) * 1px)
+      calc(var(--y, 0) * 1px),
+      hsl(var(--hue, 210) calc(var(--saturation, 100) * 1%) calc(var(--lightness, 70) * 1%) / var(--bg-spot-opacity, 0.1)), transparent
+    )`,
+    backgroundColor: 'var(--backdrop, transparent)',
+    backgroundSize: 'calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)))',
+    backgroundPosition: '50% 50%',
+    backgroundAttachment: 'fixed',
+    border: 'var(--border-size) solid var(--backup-border)',
+    position: 'relative' as const,
+    touchAction: 'none' as const,
+  });
+
+  const beforeAfterStyles = `
+    [data-glow]::before,
+    [data-glow]::after {
+      pointer-events: none;
+      content: "";
+      position: absolute;
+      inset: calc(var(--border-size) * -1);
+      border: var(--border-size) solid transparent;
+      border-radius: calc(var(--radius) * 1px);
+      background-attachment: fixed;
+      background-size: calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)));
+      background-repeat: no-repeat;
+      background-position: 50% 50%;
+      mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+      mask-clip: padding-box, border-box;
+      mask-composite: intersect;
+    }
+    
+    [data-glow]::before {
+      background-image: radial-gradient(
+        calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
+        calc(var(--x, 0) * 1px)
+        calc(var(--y, 0) * 1px),
+        hsl(var(--hue, 210) calc(var(--saturation, 100) * 1%) calc(var(--lightness, 50) * 1%) / var(--border-spot-opacity, 1)), transparent 100%
+      );
+      filter: brightness(2);
+    }
+    
+    [data-glow]::after {
+      background-image: radial-gradient(
+        calc(var(--spotlight-size) * 0.5) calc(var(--spotlight-size) * 0.5) at
+        calc(var(--x, 0) * 1px)
+        calc(var(--y, 0) * 1px),
+        hsl(0 100% 100% / var(--border-light-opacity, 1)), transparent 100%
+      );
+    }
+    
+    [data-glow] [data-glow] {
+      position: absolute;
+      inset: 0;
+      will-change: filter;
+      opacity: var(--outer, 1);
+      border-radius: calc(var(--radius) * 1px);
+      border-width: calc(var(--border-size) * 20);
+      filter: blur(calc(var(--border-size) * 10));
+      background: none;
+      pointer-events: none;
+      border: none;
+    }
+    
+    [data-glow] > [data-glow]::before {
+      inset: -10px;
+      border-width: 10px;
+    }
+  `;
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: beforeAfterStyles }} />
+      <div
+        ref={cardRef}
+        data-glow
+        style={getInlineStyles()}
+        className={`
+          ${sizeMap[size]}
+          aspect-[3/4]
+          rounded-2xl 
+          relative 
+          grid 
+          grid-rows-[1fr_auto] 
+          shadow-[0_1rem_2rem_-1rem_black] 
+          p-4 
+          gap-4 
+          backdrop-blur-[5px]
+          ${className}
+        `}
+      >
+        <div ref={innerRef} data-glow></div>
+        {children}
+      </div>
+    </>
+  );
+};
+
+// Hijriyah Month Data
+const hijriyahMonths = [
+  { number: 1, name: 'Muharram', arabic: 'مُحَرَّم', meaning: 'The Forbidden', icon: Shield },
+  { number: 2, name: 'Safar', arabic: 'صَفَر', meaning: 'The Void', icon: Moon },
+  { number: 3, name: 'Rabi\' al-Awwal', arabic: 'رَبِيع الأَوَّل', meaning: 'First Spring', icon: Sun },
+  { number: 4, name: 'Rabi\' al-Thani', arabic: 'رَبِيع الثَّانِي', meaning: 'Second Spring', icon: Cloud },
+  { number: 5, name: 'Jumada al-Awwal', arabic: 'جُمَادَىٰ الأُولَىٰ', meaning: 'First Freeze', icon: Star },
+  { number: 6, name: 'Jumada al-Thani', arabic: 'جُمَادَىٰ الآخِرَة', meaning: 'Second Freeze', icon: Sparkles },
+  { number: 7, name: 'Rajab', arabic: 'رَجَب', meaning: 'To Respect', icon: Crown },
+  { number: 8, name: 'Sha\'ban', arabic: 'شَعْبَان', meaning: 'To Scatter', icon: Zap },
+  { number: 9, name: 'Ramadan', arabic: 'رَمَضَان', meaning: 'Burning Heat', icon: Heart },
+  { number: 10, name: 'Shawwal', arabic: 'شَوَّال', meaning: 'To Be Light', icon: Calendar }
 ];
 
-const TimelineSection = () => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+const HijriyahCard = ({ month, glowColor }: { month: typeof hijriyahMonths[0], glowColor: GlowCardProps['glowColor'] }) => {
+  const IconComponent = month.icon;
+  
+  return (
+    <GlowCard 
+      glowColor={glowColor} 
+      size="sm" 
+      className="group hover:scale-105 transition-all duration-500 cursor-pointer flex-shrink-0"
+    >
+      <div className="flex flex-col items-center justify-center h-full text-center p-2">
+        <IconComponent className="w-8 h-8 text-white mb-3 group-hover:scale-110 transition-transform duration-300" />
+        
+        <div className="mb-4">
+          <h2 className="text-3xl font-bold text-white mb-1">{month.number}</h2>
+          <p className="text-sm text-gray-300">Hijriyah</p>
+        </div>
+        
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-white leading-tight group-hover:text-yellow-300 transition-colors">
+            {month.name}
+          </h3>
+          <p className="text-xl text-yellow-300 font-arabic leading-tight" style={{ fontFamily: 'serif' }}>
+            {month.arabic}
+          </p>
+          <p className="text-xs text-gray-400 italic group-hover:text-gray-300 transition-colors">
+            {month.meaning}
+          </p>
+        </div>
+        
+        <div className="flex space-x-1 mt-3">
+          {[...Array(5)].map((_, i) => (
+            <div 
+              key={i} 
+              className={`w-1 h-1 rounded-full transition-colors duration-300 ${
+                i < month.number % 5 + 1 
+                  ? 'bg-yellow-400 group-hover:bg-yellow-300' 
+                  : 'bg-gray-600 group-hover:bg-gray-500'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </GlowCard>
+  );
+};
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = 320; // width of card + gap
-      const newScrollLeft = scrollRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
-      scrollRef.current.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+const TimelineSection = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const colors: GlowCardProps['glowColor'][] = ['blue', 'purple', 'green', 'red', 'orange'];
+  const cardWidth = 192 + 32; // w-48 + gap-8
+  const visibleCards = 4;
+  const maxIndex = Math.max(0, hijriyahMonths.length - visibleCards);
+
+  // Touch handling
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      nextSlide();
+    } else if (isRightSwipe) {
+      prevSlide();
     }
   };
 
-  const handleCardClick = (event: any) => {
-    // In real app, this would navigate to detail page
-    console.log('Navigate to event detail:', event);
-  };
+  const nextSlide = useCallback(() => {
+    setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
+  }, [maxIndex]);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
+  }, []);
 
   return (
-    <section className="py-16 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+    <div className="w-full bg-gray-900 py-8">
+      <div className="relative">
+        {/* Navigation Buttons */}
+        <button 
+          onClick={prevSlide}
+          disabled={currentIndex === 0}
+          className={`absolute left-4 top-1/2 transform -translate-y-1/2 z-10 backdrop-blur-sm rounded-full p-3 transition-all duration-300 ${
+            currentIndex === 0 
+              ? 'bg-gray-600 bg-opacity-20 text-gray-500 cursor-not-allowed' 
+              : 'bg-white bg-opacity-20 hover:bg-opacity-30 text-white hover:scale-110'
+          }`}
         >
-          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-            Timeline Sejarah Islam
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Jelajahi perjalanan sejarah Islam dari masa ke masa melalui peristiwa-peristiwa penting
-          </p>
-        </motion.div>
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        
+        <button 
+          onClick={nextSlide}
+          disabled={currentIndex === maxIndex}
+          className={`absolute right-4 top-1/2 transform -translate-y-1/2 z-10 backdrop-blur-sm rounded-full p-3 transition-all duration-300 ${
+            currentIndex === maxIndex 
+              ? 'bg-gray-600 bg-opacity-20 text-gray-500 cursor-not-allowed' 
+              : 'bg-white bg-opacity-20 hover:bg-opacity-30 text-white hover:scale-110'
+          }`}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
 
-        {/* Timeline Navigation */}
-        <div className="relative">
-          {/* Navigation Buttons */}
-          <div className="absolute top-1/2 -translate-y-1/2 -left-6 z-10">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => scroll('left')}
-              className="w-12 h-12 rounded-full bg-card/80 backdrop-blur-sm border-border hover:bg-primary hover:text-primary-foreground shadow-soft"
-            >
-              <ChevronLeft size={20} />
-            </Button>
-          </div>
-          
-          <div className="absolute top-1/2 -translate-y-1/2 -right-6 z-10">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => scroll('right')}
-              className="w-12 h-12 rounded-full bg-card/80 backdrop-blur-sm border-border hover:bg-primary hover:text-primary-foreground shadow-soft"
-            >
-              <ChevronRight size={20} />
-            </Button>
-          </div>
-
-          {/* Timeline Cards Container */}
-          <div
-            ref={scrollRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        {/* Cards Container */}
+        <div 
+          className="overflow-hidden px-16"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div 
+            className="flex transition-transform duration-700 ease-in-out gap-8"
+            style={{ 
+              transform: `translateX(-${currentIndex * cardWidth}px)`,
+              width: `${hijriyahMonths.length * cardWidth}px`
+            }}
           >
-            {mockTimelineEvents.map((event, index) => (
-              <TimelineCard
-                key={event.id}
-                event={event}
-                index={index}
-                onCardClick={handleCardClick}
+            {hijriyahMonths.map((month, index) => (
+              <HijriyahCard 
+                key={index}
+                month={month} 
+                glowColor={colors[index % colors.length]} 
               />
             ))}
           </div>
         </div>
 
-        {/* Timeline Progress Indicator */}
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="mt-8 h-1 bg-gradient-primary rounded-full mx-auto"
-          style={{ width: '60%' }}
-        />
+        {/* Dots Indicator */}
+        <div className="flex justify-center space-x-2 mt-6">
+          {[...Array(maxIndex + 1)].map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(Math.min(index, maxIndex))}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentIndex 
+                  ? 'bg-white scale-125' 
+                  : 'bg-gray-500 hover:bg-gray-400'
+              }`}
+            />
+          ))}
+        </div>
       </div>
-    </section>
+    </div>
   );
 };
 

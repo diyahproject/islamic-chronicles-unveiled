@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Filter, Calendar, MapPin, Search } from 'lucide-react';
+import { Filter, Calendar, MapPin, Search, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import TimelineCard from '@/components/timeline/TimelineCard';
+import { useAdmin } from '@/contexts/AdminContext';
 
 // Extended mock data for timeline page
 const timelineEvents = [
@@ -76,37 +77,78 @@ const timelineEvents = [
 ];
 
 const Timeline = () => {
+  const { events: adminEvents } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [filteredEvents, setFilteredEvents] = useState(timelineEvents);
+  
+  // Combine mock events with admin events
+  const allEvents = useMemo(() => {
+    const combinedEvents = [...timelineEvents];
+    
+    // Add admin events if they have hijriYear
+    adminEvents.forEach(adminEvent => {
+      if (adminEvent.hijriYear) {
+        combinedEvents.push({
+          ...adminEvent,
+          year: adminEvent.year || '',
+          hijriYear: adminEvent.hijriYear,
+          subtitle: adminEvent.subtitle || '',
+          backgroundImage: adminEvent.backgroundImage || 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400'
+        });
+      }
+    });
+    
+    return combinedEvents;
+  }, [adminEvents]);
 
   const categories = ['all', 'Biografi', 'Wahyu', 'Hijrah', 'Penaklukan', 'Pemerintahan'];
+  
+  // Group events by Hijri year
+  const eventsByHijriYear = useMemo(() => {
+    let filtered = allEvents;
+    
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(event => event.category === selectedCategory);
+    }
+    
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Group by hijriYear and sort
+    const grouped = filtered.reduce((acc, event) => {
+      const hijriYear = event.hijriYear;
+      if (!acc[hijriYear]) {
+        acc[hijriYear] = [];
+      }
+      acc[hijriYear].push(event);
+      return acc;
+    }, {} as Record<string, typeof allEvents>);
+    
+    // Convert to sorted array
+    return Object.keys(grouped)
+      .sort((a, b) => {
+        const yearA = parseInt(a.replace('-', ''));
+        const yearB = parseInt(b.replace('-', ''));
+        if (a.startsWith('-') && !b.startsWith('-')) return -1;
+        if (!a.startsWith('-') && b.startsWith('-')) return 1;
+        return a.startsWith('-') ? yearB - yearA : yearA - yearB;
+      })
+      .map(year => ({
+        year,
+        events: grouped[year]
+      }));
+  }, [allEvents, selectedCategory, searchQuery]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    filterEvents(query, selectedCategory);
   };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    filterEvents(searchQuery, category);
-  };
-
-  const filterEvents = (query: string, category: string) => {
-    let filtered = timelineEvents;
-
-    if (category !== 'all') {
-      filtered = filtered.filter(event => event.category === category);
-    }
-
-    if (query) {
-      filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(query.toLowerCase()) ||
-        event.subtitle.toLowerCase().includes(query.toLowerCase())
-      );
-    }
-
-    setFilteredEvents(filtered);
   };
 
   const handleCardClick = (event: any) => {
@@ -172,31 +214,67 @@ const Timeline = () => {
 
           {/* Results Count */}
           <p className="text-sm text-muted-foreground">
-            Menampilkan {filteredEvents.length} dari {timelineEvents.length} peristiwa
+            Menampilkan {eventsByHijriYear.reduce((acc, yearGroup) => acc + yearGroup.events.length, 0)} dari {allEvents.length} peristiwa dalam {eventsByHijriYear.length} tahun Hijriyah
           </p>
         </div>
       </motion.div>
 
-      {/* Timeline Grid */}
+      {/* Timeline by Hijri Years */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.6 }}
         className="px-6"
       >
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event, index) => (
-              <TimelineCard
-                key={event.id}
-                event={event}
-                index={index}
-                onCardClick={handleCardClick}
-              />
-            ))}
-          </div>
+        <div className="max-w-6xl mx-auto space-y-12">
+          {eventsByHijriYear.map((yearGroup, yearIndex) => (
+            <motion.div
+              key={yearGroup.year}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: yearIndex * 0.1, duration: 0.6 }}
+              className="relative"
+            >
+              {/* Year Header */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 bg-gradient-to-r from-primary/20 to-primary/10 backdrop-blur-sm border border-primary/20 rounded-xl px-6 py-3">
+                  <Clock className="text-primary" size={24} />
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {yearGroup.year.startsWith('-') 
+                        ? `${yearGroup.year.substring(1)} Sebelum Hijriyah` 
+                        : `${yearGroup.year} Hijriyah`
+                      }
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {yearGroup.events.length} peristiwa
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 h-px bg-gradient-to-r from-primary/30 to-transparent"></div>
+              </div>
 
-          {filteredEvents.length === 0 && (
+              {/* Events Grid for this year */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {yearGroup.events.map((event, eventIndex) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: (yearIndex * 0.1) + (eventIndex * 0.05), duration: 0.4 }}
+                  >
+                    <TimelineCard
+                      event={event}
+                      index={eventIndex}
+                      onCardClick={handleCardClick}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+
+          {eventsByHijriYear.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -211,7 +289,6 @@ const Timeline = () => {
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
-                  setFilteredEvents(timelineEvents);
                 }}
                 variant="outline"
               >
